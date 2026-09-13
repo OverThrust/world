@@ -1,0 +1,1 @@
+{"$schema":"https://openapi.vercel.sh/vercel.json","functions":{"api/fabric.py":{"maxDuration":60,"includeFiles":"brain_parts/**"}}}
