@@ -1,95 +1,12 @@
-import React from "react";
-import { ThumbsUp } from "lucide-react";
-
-const problemCategories = [
-  {
-    title: "Personal",
-    items: ["Mental health", "Substance abuse", "Legal support", "Education access", "Discrimination"]
-  },
-  {
-    title: "Community",
-    items: ["Neighborhood safety", "Homelessness", "Public transportation", "Water quality"]
-  },
-  {
-    title: "Business",
-    items: ["Licensing", "Tax issues", "Workforce development", "Local supply chains"]
-  },
-  {
-    title: "Education",
-    items: ["Curriculum issues", "Bullying", "Tuition policy", "Resource equity"]
-  },
-  {
-    title: "State",
-    items: ["Healthcare policy", "Environmental regulation", "Unemployment services"]
-  },
-  {
-    title: "Federal",
-    items: ["Immigration", "National health", "Civil rights", "Disaster response"]
-  },
-  {
-    title: "Global",
-    items: ["Climate change", "Human trafficking", "Digital rights"]
-  }
-];
-
-const tiers = [
-  "Tier 1 – Individual/Local",
-  "Tier 2 – Community/Group",
-  "Tier 3 – District/City",
-  "Tier 4 – Statewide",
-  "Tier 5 – National/Federal",
-  "Tier 6 – Global Collaboration"
-];
-
-function App() {
-  return (
-    <div style={{ padding: "2rem", maxWidth: "1000px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2.5rem", fontWeight: "bold", marginBottom: "1rem" }}>
-        🌐 Society Problem Solver
-      </h1>
-      <p style={{ fontSize: "1.2rem", marginBottom: "2rem" }}>
-        A platform to submit, categorize, and escalate problems from personal to global level. Join a problem to show it matters.
-      </p>
-
-      <section style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.8rem", fontWeight: "bold", marginBottom: "1rem" }}>🗂️ Categories</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "1rem" }}>
-          {problemCategories.map((cat) => (
-            <div key={cat.title} style={{ border: "1px solid #dee2e6", padding: "1rem", borderRadius: "0.5rem", background: "#fff" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: "bold", marginBottom: "0.5rem" }}>{cat.title}</h3>
-              <ul>
-                {cat.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.8rem", fontWeight: "bold", marginBottom: "1rem" }}>📊 Problem Tier System</h2>
-        <ul>
-          {tiers.map((tier, i) => (
-            <li key={i}>{tier}</li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <h2 style={{ fontSize: "1.8rem", fontWeight: "bold", marginBottom: "1rem" }}>🔥 Featured Problem</h2>
-        <div style={{ border: "1px solid #dee2e6", padding: "1rem", borderRadius: "0.5rem", background: "#fff" }}>
-          <h3 style={{ fontSize: "1.25rem", fontWeight: "bold" }}>Local Water Contamination</h3>
-          <p style={{ marginBottom: "1rem" }}>
-            Residents have reported discolored and unsafe drinking water in the Riverdale area. No action taken yet by the local council.
-          </p>
-          <button style={{ display: "flex", alignItems: "center", gap: "0.5rem", border: "1px solid #333", padding: "0.5rem 1rem", borderRadius: "0.25rem", background: "#f1f3f5" }}>
-            <ThumbsUp size={18} /> Join Problem (1,203)
-          </button>
-        </div>
-      </section>
-    </div>
-  );
+import React,{useEffect,useRef,useState} from 'react';
+import './index.css';
+const K1='fabric_rp341_state',K2='fabric_rp341_room';
+export default function App(){
+ const [messages,setMessages]=useState([]),[status,setStatus]=useState('Starting Fabric…'),[input,setInput]=useState(''),[busy,setBusy]=useState(true),[live,setLive]=useState(null);const end=useRef(null);
+ const add=(role,text,meta='')=>setMessages(x=>[...x,{role,text,meta}]);
+ const init=async(force=false)=>{setBusy(true);setStatus('Starting Fabric…');try{if(force){localStorage.removeItem(K1);localStorage.removeItem(K2)}let s=localStorage.getItem(K1),r=localStorage.getItem(K2);if(!s||!r){const res=await fetch('/api/fabric',{cache:'no-store'}),d=await res.json();if(!res.ok)throw new Error(d.message||'Could not start Fabric');localStorage.setItem(K1,d.state_token);localStorage.setItem(K2,d.room_token)}setStatus('Fabric ready · RP341');return true}catch(e){setStatus('Startup error');add('fabric',e.message);return false}finally{setBusy(false)}};
+ useEffect(()=>{init().then(ok=>{if(ok)add('fabric','Fabric is ready. Say something.')})},[]);useEffect(()=>end.current?.scrollIntoView({behavior:'smooth'}),[messages]);
+ const talk=async()=>{const text=input.trim();if(!text||busy)return;setInput('');add('you',text);setBusy(true);setStatus('Fabric is processing…');try{const res=await fetch('/api/fabric',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:text,state_token:localStorage.getItem(K1),room_token:localStorage.getItem(K2)})});const d=await res.json();if(!res.ok)throw new Error(d.message||'Fabric request failed');localStorage.setItem(K1,d.state_token);localStorage.setItem(K2,d.room_token);setLive(d.live_state||null);add('fabric',d.reply||'(no verbal reply)',`Fabric · ${d.child_id||''} · clock ${d.clock_after??''}`);setStatus('Fabric ready · RP341')}catch(e){add('fabric','Interaction error: '+e.message);setStatus('Fabric error')}finally{setBusy(false)}};
+ const reset=async()=>{if(!window.confirm('Reset this browser session to RP341?'))return;setMessages([]);setLive(null);const ok=await init(true);if(ok)add('fabric','Session reset to RP341.')};
+ return <main><header><div className="eyebrow">Experimental interaction surface</div><h1>Talk to Fabric</h1><p>Qualified baseline: RP341 / v1.32.10. This is the real Fabric Learning Room response path, not ChatGPT speaking for it. Segment 2 and the full cognitive loop are still under construction.</p><div className="status"><span className="dot"/><span>{status}</span><button className="reset" onClick={reset}>Reset</button></div></header><section className="chat">{messages.map((m,i)=><React.Fragment key={i}><div className={'msg '+m.role}>{m.text}</div>{m.meta&&<div className="meta">{m.meta}</div>}</React.Fragment>)}<div ref={end}/></section><details><summary>Live cognitive state</summary><pre>{live?JSON.stringify(live,null,2):'No turn yet.'}</pre><div className="small">Session state is stored in this browser. Reset returns to the qualified RP341 baseline.</div></details><form onSubmit={e=>{e.preventDefault();talk()}}><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();talk()}}} disabled={busy} placeholder="Say something to Fabric…"/><button disabled={busy||!input.trim()}>Send</button></form></main>
 }
-
-export default App;
