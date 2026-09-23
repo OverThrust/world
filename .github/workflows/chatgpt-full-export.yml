@@ -1,0 +1,40 @@
+name: Full Repository Export
+on:
+  push:
+    branches:
+      - backup/chatgpt-full-export-20260923
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout export branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch every branch and tag
+        shell: bash
+        run: |
+          git fetch --force origin '+refs/heads/*:refs/remotes/origin/*'
+          git fetch --force --tags origin
+      - name: Build exact source snapshot and full history bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export
+          NAME="${GITHUB_REPOSITORY#*/}"
+          SOURCE_SHA="$(git rev-parse HEAD^)"
+          git archive --format=zip --output="export/${NAME}-SOURCE-SNAPSHOT-${SOURCE_SHA}.zip" "${SOURCE_SHA}"
+          git bundle create "export/${NAME}-ALL-GITHUB-HISTORY.bundle" --all
+          git branch -a > "export/${NAME}-BRANCHES.txt"
+          git tag -l > "export/${NAME}-TAGS.txt"
+          printf '%s\n' "${SOURCE_SHA}" > "export/${NAME}-SOURCE-COMMIT.txt"
+          git show --no-patch --format=fuller "${SOURCE_SHA}" > "export/${NAME}-SOURCE-COMMIT-DETAILS.txt"
+      - name: Upload repository export
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-repository-export
+          path: export/*
+          if-no-files-found: error
+          retention-days: 30
